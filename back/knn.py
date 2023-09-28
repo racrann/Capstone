@@ -4,6 +4,7 @@ import random
 import spotipy
 from spotipy.oauth2 import SpotifyOAuth
 from sklearn.cluster import KMeans
+from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import MinMaxScaler
 from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
@@ -37,31 +38,26 @@ rec_feat_s = scaler.fit_transform(rec_feat[feat_names])
 pca = PCA(n_components = .95)
 pca_rec = pca.fit_transform(rec_feat_s)
 
+best = 0
+cluster_count = 0
+for i in range(2, 10):
+    temp_cluster = KMeans(n_clusters = i)
+    temp_cluster.fit(pca_rec)
+    predict = temp_cluster.predict(pca_rec)
 
-cluster = KMeans(n_clusters = 5)
+    if((silhouette_score(pca_rec, predict)) > best):
+        best = silhouette_score(pca_rec, predict)
+        cluster_count = i
+print(f'{best} {cluster_count}')
+
+cluster = KMeans(n_clusters = cluster_count)
 cluster.fit(pca_rec)
-
 cluster_pred = cluster.predict(pca_rec)
 
 user_feat_s = scaler.transform(user_feat[feat_names])
 pca_user = pca.transform(user_feat_s)
 
 cluster_pred_user = cluster.predict(pca_user)
-
-
-plt.scatter(pca_rec[cluster_pred==0,0], pca_rec[cluster_pred == 0,1], c = 'red')
-plt.scatter(pca_rec[cluster_pred==1,0], pca_rec[cluster_pred == 1,1], c = 'green')
-plt.scatter(pca_rec[cluster_pred==2,0], pca_rec[cluster_pred == 2,1], c = 'blue')
-plt.scatter(pca_rec[cluster_pred==3,0], pca_rec[cluster_pred == 3,1], c = 'pink')
-plt.scatter(pca_rec[cluster_pred==4,0], pca_rec[cluster_pred == 4,1], c = 'orange')
-
-plt.scatter(pca_user[cluster_pred_user==0,0], pca_user[cluster_pred_user==0,1], c = 'purple')
-plt.scatter(pca_user[cluster_pred_user==1,0], pca_user[cluster_pred_user==1,1], c = 'purple')
-plt.scatter(pca_user[cluster_pred_user==2,0], pca_user[cluster_pred_user==2,1], c = 'purple')
-plt.scatter(pca_user[cluster_pred_user==3,0], pca_user[cluster_pred_user==3,1], c = 'purple')
-plt.scatter(pca_user[cluster_pred_user==4,0], pca_user[cluster_pred_user==4,1], c = 'purple')
-
-#plt.show()
 
 all_feat = np.concatenate((rec_feat_s,user_feat_s), axis = 0)
 pca_all = pca.transform(all_feat)
@@ -96,6 +92,13 @@ for i in range(len(neighbor_list_index)):
 recs=recs.iloc[11]
 recs #THESE ARE THE RECS!!!!
 
-for i in range(5):
-    sp.add_to_queue(recs.iloc[random.randint(0,len(recs))])
+def queue_recs():
+    num_recs = input('How many recommendations would you like? ')
+    for i in range(int(num_recs)):
+        sp.add_to_queue(recs.iloc[i])
+
+queue_recs()
+#adds songs to user's queue
+
+    
 
