@@ -6,6 +6,7 @@ import spotipy
 import time
 from spotipy.oauth2 import SpotifyOAuth
 from itertools import chain
+from random import *
 
 #load env file that contains the information necessary to access spotify api
 load_dotenv()
@@ -57,7 +58,7 @@ def flatten_tracks(tracks):
 #pulls songs from the top spotify playlists, effectively pulling pop songs.
 def pull_top_songs():
     top_lists=[]
-    for i in sp.category_playlists(category_id='toplists', country = 'US', limit = 50)['playlists']['items']:
+    for i in sp.category_playlists(category_id='toplists', country = 'US', limit = 25)['playlists']['items']:
         top_lists.append(i['id'])
     
     top_tracks = []
@@ -87,18 +88,19 @@ def pull_query_songs(query):
     return top_tracks
 
 #currently grabs genres of songs in a playlist. 
-def grab_genres_pl(pl_id): #SWITCH TO TAKE A LIST OF URI
+def grab_genres_uris(uris): #SWITCH TO TAKE A LIST OF URI
     #this grabs the first listed genre for the artist and assigns
     #it to the song. any unlisted are marked as unknown.
     genres=[]
     genre = []
-    for track in sp.playlist_tracks(pl_id)['items']: #implement the page thing here
-        if track['track']['is_local']:
-            genres.append('unknown')
-            continue
-        artist = track["track"]["artists"][0]["uri"]
-        search = sp.artist(artist)
-        genre = search['genres']
+    for song in uris: #implement the page thing here
+        track = sp.track(song)
+        #if track['track']['is_local']:
+            #genres.append('unknown')
+            #continue
+        artist = sp.artist(track["artists"][0]["uri"])
+        search = sp.search(artist, type = 'artist')
+        genre = artist['genres']
         if len(genre)==0:
             genre = 'unknown'
         else:
@@ -137,11 +139,9 @@ def extract_features(track_uris):
     feats = pd.DataFrame(featsl)
     return feats
 
-#removes duplicates
+#removes duplicates from audio feature list
 def clean_features(features):
-    #temp = pd.DataFrame()
     features=features.drop_duplicates(subset=['id'])
-    #temp = temp.drop(['id'], axis=1)
     return features
 
 #RECOMMENDATIONS BASED ON USER'S PLAYLIST
@@ -192,15 +192,25 @@ user_feat
 
 #sleep to prevent too many calls to the api.
 time.sleep(10)
-#rec_id = pull_top_songs()
-rec_id = pull_query_songs('metal')
-rec_id = rec_id[0:180]
 
+#could pull from pop top songs
+rec_id = pull_top_songs()
+
+#pulling songs that could be recommended from a search query
+#rec_id = pull_query_songs('metal')
+#randomly pick 100 of the songs
+#for i in range(100):
+#    temp_id = rec_id[randrange(0, len(rec_id))]
+#    temp_frame = pd.DataFrame()
+#    temp_frame = pd.concat([temp_frame, temp_id], ignore_index=True)
+#rec_id = temp_frame
+
+time.sleep(10)
 rec_feat = extract_features(rec_id)
 
 
-#genres = grab_genre_pl()
-#rec_feat.insert(0,'genre',genres)
+genres = grab_genres_uris(rec_id)
+rec_feat.insert(0,'genre',genres)
 rec_feat_w_id = rec_feat.drop(['type','uri','track_href','analysis_url'], axis=1)
 rec_feat_w_id = clean_features(rec_feat_w_id)
 rec_feat=rec_feat_w_id.drop(['id'], axis=1)

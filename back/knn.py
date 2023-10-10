@@ -29,35 +29,54 @@ user_feat_w_id = pd.read_csv('user_id.csv')
 rec_feat_w_id = pd.read_csv('rec_id.csv')
 rec_feat = pd.read_csv('rec.csv')
 
-feat_names = ['danceability','energy','key','loudness','mode','speechiness','acousticness',
-               'instrumentalness','liveness','valence','tempo','duration_ms','time_signature']
-
+feat_names = ['danceability','energy','acousticness',
+               'instrumentalness','valence','tempo']
+    #'mode','loudness','liveness','speechiness','key','duration_ms','time_signature'
 scaler = MinMaxScaler()
 rec_feat_s = scaler.fit_transform(rec_feat[feat_names])
 
 pca = PCA(n_components = .95)
 pca_rec = pca.fit_transform(rec_feat_s)
 
-best = 0
-cluster_count = 0
-for i in range(2, 10):
-    temp_cluster = KMeans(n_clusters = i)
-    temp_cluster.fit(pca_rec)
-    predict = temp_cluster.predict(pca_rec)
+def cluster_counts():
+    best = 0
+    cluster_count = 0
+    for i in range(2, 10):
+        temp_cluster = KMeans(n_clusters = i)
+        temp_cluster.fit(pca_rec)
+        predict = temp_cluster.predict(pca_rec)
 
-    if((silhouette_score(pca_rec, predict)) > best):
-        best = silhouette_score(pca_rec, predict)
-        cluster_count = i
-print(f'{best} {cluster_count}')
+        if((silhouette_score(pca_rec, predict)) > best):
+            best = silhouette_score(pca_rec, predict)
+            cluster_count = i
+    print(f'{best} {cluster_count}')
+    return cluster_count
 
-cluster = KMeans(n_clusters = cluster_count)
+from sklearn.manifold import TSNE
+import matplotlib.pyplot as plt
+import plotly.express as px
+
+cluster = KMeans(n_clusters = cluster_counts())
 cluster.fit(pca_rec)
 cluster_pred = cluster.predict(pca_rec)
+
+rec_feat['label'] = pd.Series(cluster_pred, index=rec_feat.index)
 
 user_feat_s = scaler.transform(user_feat[feat_names])
 pca_user = pca.transform(user_feat_s)
 
 cluster_pred_user = cluster.predict(pca_user)
+
+user_feat['label'] = pd.Series(cluster_pred_user, index=user_feat.index)
+
+
+tsne = TSNE(n_components=2)
+tsne_results = tsne.fit_transform(rec_feat[feat_names])
+fig = px.scatter(
+    tsne_results, x=0, y=1,
+    color = rec_feat.label
+)
+fig.show()
 
 all_feat = np.concatenate((rec_feat_s,user_feat_s), axis = 0)
 pca_all = pca.transform(all_feat)
