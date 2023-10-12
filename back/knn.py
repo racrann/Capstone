@@ -6,7 +6,6 @@ from spotipy.oauth2 import SpotifyOAuth
 from sklearn.cluster import KMeans
 from sklearn.metrics import silhouette_score
 from sklearn.preprocessing import MinMaxScaler
-from sklearn.decomposition import PCA
 import matplotlib.pyplot as plt
 from dotenv import load_dotenv
 import os
@@ -30,24 +29,22 @@ rec_feat_w_id = pd.read_csv('rec_id.csv')
 rec_feat = pd.read_csv('rec.csv')
 
 feat_names = ['danceability','energy','acousticness',
-               'instrumentalness','valence','tempo']
-    #'mode','loudness','liveness','speechiness','key','duration_ms','time_signature'
-scaler = MinMaxScaler()
-rec_feat_s = scaler.fit_transform(rec_feat[feat_names])
+               'instrumentalness','valence','tempo','liveness','mode','loudness','speechiness']
+    #'duration_ms','time_signature','key'
 
-pca = PCA(n_components = .95)
-pca_rec = pca.fit_transform(rec_feat_s)
+
+rec_feat_ngen = rec_feat.drop('genre', axis = 1)
 
 def cluster_counts():
     best = 0
     cluster_count = 0
     for i in range(2, 10):
         temp_cluster = KMeans(n_clusters = i)
-        temp_cluster.fit(pca_rec)
-        predict = temp_cluster.predict(pca_rec)
+        temp_cluster.fit(rec_feat_ngen[feat_names])
+        predict = temp_cluster.predict(rec_feat_ngen[feat_names])
 
-        if((silhouette_score(pca_rec, predict)) > best):
-            best = silhouette_score(pca_rec, predict)
+        if((silhouette_score(rec_feat_ngen[feat_names], predict)) > best):
+            best = silhouette_score(rec_feat_ngen[feat_names], predict)
             cluster_count = i
     print(f'{best} {cluster_count}')
     return cluster_count
@@ -57,34 +54,31 @@ import matplotlib.pyplot as plt
 import plotly.express as px
 
 cluster = KMeans(n_clusters = cluster_counts())
-cluster.fit(pca_rec)
-cluster_pred = cluster.predict(pca_rec)
+cluster.fit(rec_feat_ngen[feat_names])
+cluster_pred = cluster.predict(rec_feat_ngen[feat_names])
 
-rec_feat['label'] = pd.Series(cluster_pred, index=rec_feat.index)
+rec_feat_ngen['label'] = pd.Series(cluster_pred, index=rec_feat_ngen.index)
 
-user_feat_s = scaler.transform(user_feat[feat_names])
-pca_user = pca.transform(user_feat_s)
 
-cluster_pred_user = cluster.predict(pca_user)
+user_feat_ngen = user_feat.drop('genre', axis=1)
+cluster_pred_user = cluster.predict(user_feat_ngen[feat_names])
 
-user_feat['label'] = pd.Series(cluster_pred_user, index=user_feat.index)
-
+user_feat_ngen['label'] = pd.Series(cluster_pred_user, index=user_feat_ngen.index)
 
 tsne = TSNE(n_components=2)
-tsne_results = tsne.fit_transform(rec_feat[feat_names])
+tsne_results = tsne.fit_transform(rec_feat_ngen[feat_names])
 fig = px.scatter(
     tsne_results, x=0, y=1,
-    color = rec_feat.label
+    color = rec_feat_ngen.label
 )
 fig.show()
 
-all_feat = np.concatenate((rec_feat_s,user_feat_s), axis = 0)
-pca_all = pca.transform(all_feat)
 
-pcad_all=pd.DataFrame(pca_all)
+all_feat = np.concatenate((rec_feat,user_feat), axis = 0)
 
-tree = KDTree(pcad_all)
-ind = tree.query_radius(pcad_all[0:], r=.05)
+
+tree = KDTree(all_feat)
+ind = tree.query_radius(all_feat[0:], r=.05)
 #ind = tree.query(pcad_all[0:], k=3)
 ind = np.array(ind).tolist()  
 #ind_df = pd.DataFrame(ind)
@@ -92,7 +86,7 @@ ind = np.array(ind).tolist()
 neighbor_lists= []
 neighbor_list_index = []
 
-for i in range(len(ind[:len(rec_feat_s)])):
+for i in range(len(ind[:len(rec_feat)])):
     ind[i].sort()
     for neighb in ind[i]:
         if (neighb>=len(user_feat_s)-1):
