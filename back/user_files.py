@@ -55,37 +55,7 @@ def flatten_tracks(tracks):
             flat_tracks.append(item)
     return flat_tracks
 
-#pulls songs from the top spotify playlists, effectively pulling pop songs.
-def pull_top_songs():
-    top_lists=[]
-    for i in sp.category_playlists(category_id='toplists', country = 'US', limit = 25)['playlists']['items']:
-        top_lists.append(i['id'])
-    
-    top_tracks = []
-    for i in range(len(top_lists)):
-        results=get_all_playlist_track_uri(top_lists[i])
-        results
-        top_tracks.append(results)
-    top_tracks = flatten_tracks(top_tracks)
-    return top_tracks
 
-#pulls songs based on a search, could be a genre, artist, or year.
-def pull_query_songs(query):
-    lists = []
-
-    #grabs ids of each playlist
-    for i in sp.search(q= query, type='playlist', limit = 10)['playlists']['items']:
-        lists.append(i['id'])
-
-    #calls method to grab track uris
-    top_tracks = []
-    for i in range(len(lists)):
-        results=get_all_playlist_track_uri(lists[i])
-        results
-        #if song isnt local then append!!!!!!!!!!
-        top_tracks.append(results)
-    top_tracks = flatten_tracks(top_tracks)
-    return top_tracks
 
 #currently grabs genres of songs in a playlist. 
 def grab_genres_uris(uris): #SWITCH TO TAKE A LIST OF URI
@@ -191,32 +161,5 @@ user_feat
 #now we can pull pop songs and analyze user playlist + history.
 
 #sleep to prevent too many calls to the api.
-time.sleep(10)
-
-#could pull from pop top songs
-rec_id = pull_top_songs()
-
-#pulling songs that could be recommended from a search query
-#rec_id = pull_query_songs('metal')
-#randomly pick 100 of the songs
-#for i in range(100):
-#    temp_id = rec_id[randrange(0, len(rec_id))]
-#    temp_frame = pd.DataFrame()
-#    temp_frame = pd.concat([temp_frame, temp_id], ignore_index=True)
-#rec_id = temp_frame
-
-time.sleep(10)
-rec_feat = extract_features(rec_id)
-
-
-genres = grab_genres_uris(rec_id)
-rec_feat.insert(0,'genre',genres)
-rec_feat_w_id = rec_feat.drop(['type','uri','track_href','analysis_url'], axis=1)
-rec_feat_w_id = clean_features(rec_feat_w_id)
-rec_feat=rec_feat_w_id.drop(['id'], axis=1)
-rec_feat
-
-rec_feat.to_csv('rec.csv', index=False)
 user_feat.to_csv('user.csv', index=False)
-rec_feat_w_id.to_csv('rec_id.csv', index=False)
 user_feat_w_id.to_csv('user_id.csv', index=False)
