@@ -35,25 +35,11 @@ feat_names = ['danceability','energy','acousticness',
 
 rec_feat_ngen = rec_feat.drop('genre', axis = 1)
 
-def cluster_counts():
-    best = 0
-    cluster_count = 0
-    for i in range(2, 10):
-        temp_cluster = KMeans(n_clusters = i)
-        temp_cluster.fit(rec_feat_ngen[feat_names])
-        predict = temp_cluster.predict(rec_feat_ngen[feat_names])
-
-        if((silhouette_score(rec_feat_ngen[feat_names], predict)) > best):
-            best = silhouette_score(rec_feat_ngen[feat_names], predict)
-            cluster_count = i
-    print(f'{best} {cluster_count}')
-    return cluster_count
-
 from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 import plotly.express as px
 
-cluster = KMeans(n_clusters = cluster_counts())
+cluster = KMeans(n_clusters = 3)
 cluster.fit(rec_feat_ngen[feat_names])
 cluster_pred = cluster.predict(rec_feat_ngen[feat_names])
 
@@ -74,7 +60,7 @@ fig = px.scatter(
 fig.show()
 
 
-all_feat = np.concatenate((rec_feat,user_feat), axis = 0)
+all_feat = np.concatenate((rec_feat_ngen,user_feat_ngen), axis = 0)
 
 
 tree = KDTree(all_feat)
@@ -89,7 +75,7 @@ neighbor_list_index = []
 for i in range(len(ind[:len(rec_feat)])):
     ind[i].sort()
     for neighb in ind[i]:
-        if (neighb>=len(user_feat_s)-1):
+        if (neighb>=len(user_feat)-1):
             neighbor_lists.append(ind[i])
             neighbor_list_index.append(i)
             break
@@ -102,15 +88,15 @@ recs = pd.DataFrame()
 for i in range(len(neighbor_list_index)):
     recs = pd.concat([recs, rec_feat_w_id.iloc[i]], axis=1)
 
-recs=recs.iloc[11]
+recs=recs.iloc[12]
 recs #THESE ARE THE RECS!!!!
 
-def queue_recs():
+def queue_recs(recs):
     num_recs = input('How many recommendations would you like? ')
     for i in range(int(num_recs)):
         sp.add_to_queue(recs.iloc[i])
 
-queue_recs()
+queue_recs(recs)
 #adds songs to user's queue
 
     
