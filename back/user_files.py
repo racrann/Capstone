@@ -114,52 +114,39 @@ def clean_features(features):
     features=features.drop_duplicates(subset=['id'])
     return features
 
-#RECOMMENDATIONS BASED ON USER'S PLAYLIST
-#results = sp.current_user_playlists()
-#lists playlists
-#for idx, item in enumerate(results['items']):
-#    playlist = item['name']
-#    print(idx+1, playlist[0:])
+def grab_recent():
+    track_ids = get_all_history_track_uri()
+    return(track_ids)
 
-#choose which playlist
-#ind = int(input("Which playlist (by number)"))
-#for idx, item in enumerate(results['items']):
-#    if(idx+1 == ind):
-#        playlist_name = item['name']
-#        id = item['id']
 
-#print playlist name
-#print("\n\t",playlist_name)
+def grab_user_playlist(index):
+    results = sp.current_user_playlists()
+    id = results['items'][index]['id']
+    track_uris = get_all_playlist_track_uri(id)
+    return(track_uris)
 
-#get ids and exclude songs with no id
+def make_files(track_uris):
+    user_feat = extract_features(track_uris)
+    #genres = grab_genre_recent()
+    #user_feat.insert(0,'genre', genres)
+
+    user_feat_w_id = user_feat.drop(['type','uri','track_href','analysis_url'], axis=1)
+    user_feat_w_id = clean_features(user_feat_w_id)
+    user_feat=user_feat_w_id.drop(['id'], axis=1)
+
+    user_feat.to_csv('user.csv', index=False)
+    user_feat_w_id.to_csv('user_id.csv', index=False)
+
+grab_recent()
+
 #track_uris=get_all_playlist_track_uri(id)
 
-#BASED ON RECENT SONGS
-results=sp.current_user_recently_played()['items']
+#track_uris = get_all_history_track_uri()
+#for track in track_uris:
+#    if track is None:
+#        track_uris.remove(track)
 
-for i in range(len(results)):
-    print(results[i]['track']['name'])
-
-
-track_uris = get_all_history_track_uri()
-for track in track_uris:
-    if track is None:
-        track_uris.remove(track)
-
-
-user_feat = extract_features(track_uris)
-genres = grab_genre_recent()
-user_feat.insert(0,'genre', genres)
 
 #creates a features dataframe and a features+id dataframe for referencing the song id later.
-user_feat_w_id = user_feat.drop(['type','uri','track_href','analysis_url'], axis=1)
-user_feat_w_id = clean_features(user_feat_w_id)
-user_feat=user_feat_w_id.drop(['id'], axis=1)
-
-user_feat
 #at this point the features of the chosen playlist have been pulled.
 #now we can pull pop songs and analyze user playlist + history.
-
-#sleep to prevent too many calls to the api.
-user_feat.to_csv('user.csv', index=False)
-user_feat_w_id.to_csv('user_id.csv', index=False)

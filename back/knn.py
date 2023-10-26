@@ -33,34 +33,35 @@ feat_names = ['danceability','energy','acousticness',
     #'duration_ms','time_signature','key'
 
 
-rec_feat_ngen = rec_feat.drop('genre', axis = 1)
+#rec_feat_ngen = rec_feat.drop('genre', axis = 1)
+
 
 from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 import plotly.express as px
 
 cluster = KMeans(n_clusters = 3)
-cluster.fit(rec_feat_ngen[feat_names])
-cluster_pred = cluster.predict(rec_feat_ngen[feat_names])
+cluster.fit(rec_feat[feat_names])
+cluster_pred = cluster.predict(rec_feat[feat_names])
 
-rec_feat_ngen['label'] = pd.Series(cluster_pred, index=rec_feat_ngen.index)
+rec_feat['label'] = pd.Series(cluster_pred, index=rec_feat.index)
 
 
-user_feat_ngen = user_feat.drop('genre', axis=1)
-cluster_pred_user = cluster.predict(user_feat_ngen[feat_names])
+#user_feat_ngen = user_feat.drop('genre', axis=1)
+cluster_pred_user = cluster.predict(user_feat[feat_names])
 
-user_feat_ngen['label'] = pd.Series(cluster_pred_user, index=user_feat_ngen.index)
+user_feat['label'] = pd.Series(cluster_pred_user, index=user_feat.index)
 
 tsne = TSNE(n_components=2)
-tsne_results = tsne.fit_transform(rec_feat_ngen[feat_names])
+tsne_results = tsne.fit_transform(rec_feat[feat_names])
 fig = px.scatter(
     tsne_results, x=0, y=1,
-    color = rec_feat_ngen.label
+    color = rec_feat.label
 )
 fig.show()
 
 
-all_feat = np.concatenate((rec_feat_ngen,user_feat_ngen), axis = 0)
+all_feat = np.concatenate((rec_feat,user_feat), axis = 0)
 
 
 tree = KDTree(all_feat)

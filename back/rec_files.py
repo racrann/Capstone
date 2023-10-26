@@ -109,28 +109,22 @@ def pull_top_songs():
     top_tracks = flatten_tracks(top_tracks)
     return top_tracks
 
-'if pulling songs from top lists'
-#rec_id = pull_top_songs()
+def pick_rec_songs_pl(rec_id):
+    temp_list = []
+    for i in range(100):
+        temp_id = rec_id[randrange(0, len(rec_id))]
+        temp_list.append(temp_id)
+    rec_id = pd.DataFrame({'col':temp_list})
+    rec_feat = extract_features(rec_id)
+    return rec_feat
 
-'pulling songs that could be recommended from a search query/genre/artist/years'
-rec_id = pull_query_songs_playlist('death metal')
-#randomly pick 100 of the songs
-temp_list = []
-for i in range(100):
-    temp_id = rec_id[randrange(0, len(rec_id))]
-    temp_list.append(temp_id)
-rec_id = pd.DataFrame({'col':temp_list})
+def make_files(rec_feat):
+    rec_feat_w_id = rec_feat.drop(['type','uri','track_href','analysis_url'], axis=1)
+    rec_feat_w_id = clean_features(rec_feat_w_id)
+    rec_feat=rec_feat_w_id.drop(['id'], axis=1)
 
-time.sleep(4)
-rec_feat = extract_features(rec_id)
+    rec_feat_w_id.to_csv('rec_id.csv', index=False)
+    rec_feat.to_csv('rec.csv', index=False)
 
-time.sleep(4)
-genres = grab_genres_uris(rec_id)
-rec_feat.insert(0,'genre',genres)
-rec_feat_w_id = rec_feat.drop(['type','uri','track_href','analysis_url'], axis=1)
-rec_feat_w_id = clean_features(rec_feat_w_id)
-rec_feat=rec_feat_w_id.drop(['id'], axis=1)
-rec_feat
-
-rec_feat_w_id.to_csv('rec_id.csv', index=False)
-rec_feat.to_csv('rec.csv', index=False)
+#genres = grab_genres_uris(rec_id)
+#rec_feat.insert(0,'genre',genres)
