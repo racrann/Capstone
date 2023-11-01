@@ -66,9 +66,13 @@ def grab_genres_uris(uris):
 
 def extract_features(track_uris):
     featsl = []
-    for i in range(len(track_uris)):
-        feat=sp.audio_features(track_uris['col'][i])
+    j=0
+    for i in track_uris:
+        feat=sp.audio_features(i)
         featsl = feat+featsl
+        if j%15==0:
+            time.sleep(10)
+        j+=1
     feats = pd.DataFrame(featsl)
     return feats
 
@@ -100,13 +104,14 @@ def pull_top_songs():
     top_lists=[]
     for i in sp.category_playlists(category_id='toplists', country = 'US', limit = 25)['playlists']['items']:
         top_lists.append(i['id'])
-    
+    time.sleep(4)
     top_tracks = []
     for i in range(len(top_lists)):
         results=get_all_playlist_track_uri(top_lists[i])
         results
         top_tracks.append(results)
     top_tracks = flatten_tracks(top_tracks)
+
     return top_tracks
 
 def pick_rec_songs_pl(rec_id):
@@ -118,8 +123,9 @@ def pick_rec_songs_pl(rec_id):
     rec_feat = extract_features(rec_id)
     return rec_feat
 
-def make_files(rec_feat):
-    rec_feat_w_id = rec_feat.drop(['type','uri','track_href','analysis_url'], axis=1)
+def make_files(track_uris):
+    rec_feat_w_id = extract_features(track_uris)
+    rec_feat_w_id = rec_feat_w_id.drop(['type','uri','track_href','analysis_url'], axis=1)
     rec_feat_w_id = clean_features(rec_feat_w_id)
     rec_feat=rec_feat_w_id.drop(['id'], axis=1)
 
