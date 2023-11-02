@@ -1,9 +1,11 @@
 from PyQt6.QtWidgets import QApplication, QGridLayout, QWidget, QLabel, QPushButton, QComboBox, QLineEdit
-from PyQt6.QtGui import QIcon
+from PyQt6.QtGui import QIcon, QPixmap
 from PyQt6.QtCore import Qt, QSize
 import sys
 import spotipy
 import os
+import urllib
+import threading
 from spotipy.oauth2 import SpotifyOAuth
 from dotenv import load_dotenv
 
@@ -56,17 +58,53 @@ class Window(QWidget):
         button.clicked.connect(self.rec_files_q)
         layout.addWidget(button, 0, 4)
 
+
         button = QPushButton(self)
         button.setGeometry(200,150,100,100)
-        button.setStyleSheet("border-radius : 50; border : 2px solid black")
+        button.setStyleSheet("border-radius : 50")
         button.setIcon(QIcon('C:/Users/racra/desktop/capstone stuff/capstone/back/img/play.png'))
         button.setIconSize(QSize(75,75))
         button.clicked.connect(self.play_pause)
-        layout.addWidget(button, 10, 2)
+        layout.addWidget(button, 10, 2, alignment = Qt.AlignmentFlag.AlignLeft)
+
+        button = QPushButton(self)
+        button.setGeometry(200,150,100,100)
+        button.setStyleSheet("border-radius : 50")
+        button.setIcon(QIcon('C:/Users/racra/desktop/capstone stuff/capstone/back/img/ffw.png'))
+        button.setIconSize(QSize(75,75))
+        button.clicked.connect(self.ffw)
+        layout.addWidget(button, 10, 3, alignment = Qt.AlignmentFlag.AlignLeft)
+
+        button = QPushButton(self)
+        button.setGeometry(200,150,100,100)
+        button.setStyleSheet("border-radius : 50")
+        button.setIcon(QIcon('C:/Users/racra/desktop/capstone stuff/capstone/back/img/rew.png'))
+        button.setIconSize(QSize(75,75))
+        button.clicked.connect(self.rew)
+        layout.addWidget(button, 10, 1, alignment = Qt.AlignmentFlag.AlignLeft)
+
+        button = QPushButton('QUEUE RECS', self)
+        button.clicked.connect(self.queue_recs)
+        layout.addWidget(button, 10,4, alignment = Qt.AlignmentFlag.AlignCenter)
+
+        def cover_art(): #'DUNNO HOW TO GET TO CHANGE'
+            threading.Timer(5.0, cover_art).start()
+            cover_url = sp.currently_playing()['item']['album']['images'][0]['url']
+            with urllib.request.urlopen(cover_url) as url:
+                data = url.read()
+            pixmap = QPixmap()
+            pixmap.loadFromData(data)
+            pixmap = pixmap.scaledToWidth(300)
+            pixmap = pixmap.scaledToHeight(300)
+            label = QLabel()
+            label.setPixmap(pixmap)
+            layout.addWidget(label, 5, 1, 1, 3, Qt.AlignmentFlag.AlignCenter)
+        cover_art()
 
         layout.setContentsMargins(50,20,50,20)
         layout.setSpacing(20)
     
+
     def user_data_recent(self):
         from user_files import grab_recent, make_files
         track_ids = grab_recent()
@@ -90,6 +128,13 @@ class Window(QWidget):
             sp.start_playback()
         else:
             sp.pause_playback()
+    def ffw(self):
+        sp.next_track()
+    def rew(self):
+        sp.previous_track()
+    
+    def queue_recs(self):
+        import knn
 
 app = QApplication(sys.argv)
 window = Window()

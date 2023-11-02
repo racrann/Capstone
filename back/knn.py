@@ -52,13 +52,13 @@ cluster_pred_user = cluster.predict(user_feat[feat_names])
 
 user_feat['label'] = pd.Series(cluster_pred_user, index=user_feat.index)
 
-tsne = TSNE(n_components=2)
-tsne_results = tsne.fit_transform(rec_feat[feat_names])
-fig = px.scatter(
-    tsne_results, x=0, y=1,
-    color = rec_feat.label
-)
-fig.show()
+#tsne = TSNE(n_components=2)
+#tsne_results = tsne.fit_transform(rec_feat[feat_names])
+#fig = px.scatter(
+#    tsne_results, x=0, y=1,
+#    color = rec_feat.label
+#)
+#fig.show()
 
 
 all_feat = np.concatenate((rec_feat,user_feat), axis = 0)
@@ -89,12 +89,11 @@ recs = pd.DataFrame()
 for i in range(len(neighbor_list_index)):
     recs = pd.concat([recs, rec_feat_w_id.iloc[i]], axis=1)
 
-recs=recs.iloc[12]
+recs=recs.iloc[11]
 recs #THESE ARE THE RECS!!!!
 
 def queue_recs(recs):
-    num_recs = input('How many recommendations would you like? ')
-    for i in range(int(num_recs)):
+    for i in range(int(15)):
         sp.add_to_queue(recs.iloc[i])
 
 queue_recs(recs)
