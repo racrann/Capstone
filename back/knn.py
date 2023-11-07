@@ -27,6 +27,7 @@ user_feat = pd.read_csv('user.csv')
 user_feat_w_id = pd.read_csv('user_id.csv')
 rec_feat_w_id = pd.read_csv('rec_id.csv')
 rec_feat = pd.read_csv('rec.csv')
+black_list = pd.read_csv('black_list.csv')
 
 feat_names = ['danceability','energy','acousticness',
                'instrumentalness','valence','tempo','liveness','mode','loudness','speechiness']
@@ -89,14 +90,14 @@ recs = pd.DataFrame()
 for i in range(len(neighbor_list_index)):
     recs = pd.concat([recs, rec_feat_w_id.iloc[i]], axis=1)
 
-recs=recs.iloc[11]
-recs #THESE ARE THE RECS!!!!
 
-def queue_recs(recs):
-    for i in range(int(15)):
-        sp.add_to_queue(recs.iloc[i])
+recs=recs.iloc[11]  
 
-queue_recs(recs)
+def queue_recs():
+    for i in range(int(10)):
+        if recs[i] not in black_list['id'].values:
+            sp.add_to_queue(recs[i])
+
 #adds songs to user's queue
 
     

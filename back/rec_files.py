@@ -71,7 +71,7 @@ def extract_features(track_uris):
         feat=sp.audio_features(i)
         featsl = feat+featsl
         if j%15==0:
-            time.sleep(10)
+            time.sleep(1)
         j+=1
     feats = pd.DataFrame(featsl)
     return feats
@@ -93,7 +93,6 @@ def pull_query_songs_playlist(query):
     top_tracks = []
     for i in range(len(lists)):
         results=get_all_playlist_track_uri(lists[i])
-        results
         #if song isnt local then append!!!!!!!!!!
         top_tracks.append(results)
     top_tracks = flatten_tracks(top_tracks)
