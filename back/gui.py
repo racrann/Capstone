@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QApplication, QGridLayout, QTabWidget, QWidget, QLabel, QPushButton, QComboBox, QLineEdit
-from PyQt6.QtGui import QIcon, QPixmap, QImage
-from PyQt6.QtCore import Qt, QSize, QThread, pyqtSignal, QObject, QTimer
+from PyQt6.QtGui import QIcon, QPixmap, QMovie
+from PyQt6.QtCore import Qt, QSize, QThread, pyqtSignal, pyqtSlot, QObject, QTimer
 import sys
 import spotipy
 import os
@@ -22,16 +22,15 @@ sp=spotipy.Spotify(auth_manager=SpotifyOAuth(CLIENT_ID, CLIENT_SECRET,
                                             REDIRECT_URI,scope = SCOPE))
 
 class Worker_Queue(QObject):
-    finished = pyqtSignal()
+    finished = pyqtSignal(int)
 
     def run(self):
         from black_list import make_file
         make_file()
         import knn
         knn.queue_recs()
-        print('ok')
-        self.finished.emit()
-        QThread.currentThread().quit()
+
+        self.finished.emit(100)
 
 class Worker_Recs_Top(QObject):
     finished = pyqtSignal()
@@ -122,9 +121,9 @@ class Window(QWidget):
         button.clicked.connect(self.rew)
         self.layout.addWidget(button, 10, 1, alignment = Qt.AlignmentFlag.AlignLeft)
 
-        button = QPushButton('QUEUE RECS', self)
-        button.clicked.connect(self.queue_recs)
-        self.layout.addWidget(button, 10,0, alignment = Qt.AlignmentFlag.AlignCenter)
+        self.queue_button = QPushButton('QUEUE RECS', self)
+        self.queue_button.clicked.connect(self.queue_recs)
+        self.layout.addWidget(self.queue_button, 10,0, alignment = Qt.AlignmentFlag.AlignCenter)
 
         self.cover = QLabel()
         timer = QTimer(self)
@@ -217,8 +216,7 @@ class Window(QWidget):
             self.layout.addWidget(self.label_6, 9, 4, 1, 1, Qt.AlignmentFlag.AlignRight)
             self.label_7 = QLabel(f'{self.queue[6]['name']} - {self.queue[6]['artists'][0]['name']}')
             self.layout.addWidget(self.label_7, 10, 4, 1, 1, Qt.AlignmentFlag.AlignRight)
-            
-        
+
     def show_name_artist(self):
         if sp.currently_playing() != None:
             name = sp.currently_playing()['item']['name']
@@ -275,13 +273,12 @@ class Window(QWidget):
         self.thread_queue = QThread()
         self.worker_queue = Worker_Queue()
         self.worker_queue.moveToThread(self.thread_queue)
-
         self.thread_queue.started.connect(self.worker_queue.run)
         self.worker_queue.finished.connect(self.thread_queue.quit)
         self.worker_queue.finished.connect(self.worker_queue.deleteLater)
         self.thread_queue.finished.connect(self.thread_queue.deleteLater)
-
         self.thread_queue.start()
+        
 
 app = QApplication(sys.argv)
 window = Window()
