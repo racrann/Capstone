@@ -88,11 +88,16 @@ def pull_query_songs_playlist(query):
     #grabs ids of each playlist
     for i in sp.search(q= query, type='playlist', limit = 10)['playlists']['items']:
         lists.append(i['id'])
-
+    time.sleep(4)
     #calls method to grab track uris
     top_tracks = []
+    j = 0
     for i in range(len(lists)):
+        if j %1 == 0:
+            time.sleep(10)
+            continue
         results=get_all_playlist_track_uri(lists[i])
+        j+=1
         #if song isnt local then append!!!!!!!!!!
         top_tracks.append(results)
     top_tracks = flatten_tracks(top_tracks)

@@ -1,6 +1,6 @@
 from PyQt6.QtWidgets import QApplication, QGridLayout, QTabWidget, QWidget, QLabel, QPushButton, QComboBox, QLineEdit
 from PyQt6.QtGui import QIcon, QPixmap, QMovie
-from PyQt6.QtCore import Qt, QSize, QThread, pyqtSignal, pyqtSlot, QObject, QTimer
+from PyQt6.QtCore import Qt, QSize, QThread, pyqtSignal, pyqtSlot, QObject, QTimer, QRect
 import sys
 import spotipy
 import os
@@ -22,15 +22,13 @@ sp=spotipy.Spotify(auth_manager=SpotifyOAuth(CLIENT_ID, CLIENT_SECRET,
                                             REDIRECT_URI,scope = SCOPE))
 
 class Worker_Queue(QObject):
-    finished = pyqtSignal(int)
-
+    finished = pyqtSignal()
     def run(self):
         from black_list import make_file
         make_file()
         import knn
         knn.queue_recs()
-
-        self.finished.emit(100)
+        self.finished.emit()
 
 class Worker_Recs_Top(QObject):
     finished = pyqtSignal()
@@ -41,7 +39,32 @@ class Worker_Recs_Top(QObject):
         make_files(track_ids)
         self.finished.emit()
 
+class Worker_Recs_Playlist(QObject):
+    finished = pyqtSignal()
+
+    @pyqtSlot(int)
+    def run(self, value):
+        from user_files import grab_user_playlist, make_files
+        track_ids = grab_user_playlist(value)
+        make_files(track_ids)
+        self.finished.emit()
+
+class Worker_Recs_Q(QObject):
+    finished = pyqtSignal()
+
+    def run(self):
+        from rec_files import pull_query_songs_playlist, make_files
+        track_ids = pull_query_songs_playlist(self.get_query)
+        make_files(track_ids)
+        self.finished.emit()
+
+    @pyqtSlot(str)
+    def get_query(string):
+        return string
+
 class Window(QWidget):
+    ind = pyqtSignal(int)
+    q_sig = pyqtSignal(str)
     def __init__(self):
         super().__init__()
         self.resize(1000,600)
@@ -53,8 +76,6 @@ class Window(QWidget):
 
         tab = QTabWidget()
         window_layout.addWidget(tab)
-
-
 
         settings_tab = QWidget(tab)
         settings_layout = QGridLayout()
@@ -169,6 +190,15 @@ class Window(QWidget):
         button.clicked.connect(self.dislike_song)
         self.layout.addWidget(button, 9, 3, alignment = Qt.AlignmentFlag.AlignLeft)
 
+        self.loading = QLabel(self)
+        self.loading.setGeometry(QRect(0, 0, 200, 200)) 
+        self.loading.setMinimumSize(QSize(200, 200)) 
+        self.loading.setMaximumSize(QSize(200, 200)) 
+        self.loading.setObjectName("lb") 
+        self.movie = QMovie('C:/Users/racra/Desktop/capstone stuff/Capstone/back/img/loading.gif')
+        self.layout.addWidget(self.loading, 8, 0, 2, 2, alignment = Qt.AlignmentFlag.AlignLeft)
+        self.loading.setMovie(self.movie) 
+
         self.layout.setContentsMargins(50,20,50,20)
         self.layout.setSpacing(10)
 
@@ -176,6 +206,12 @@ class Window(QWidget):
         main_tab.setLayout(self.layout)
         tab.addTab(main_tab, 'Main')
     
+    def show_loading(self):
+        self.loading.setHidden(False) 
+        self.movie.start()
+    def hide_loading(self):
+        self.loading.setHidden(True)
+
     def delete_black_list(self):
         if os.path.exists('C:/users/racra/desktop/capstone stuff/Capstone/black_list.csv'):
             os.remove('C:/users/racra/desktop/capstone stuff/Capstone/black_list.csv')
@@ -243,7 +279,8 @@ class Window(QWidget):
         self.thread_top = QThread()
         self.worker_rec_top = Worker_Recs_Top()
         self.worker_rec_top.moveToThread(self.thread_top)
-
+        self.thread_top.started.connect(self.show_loading)
+        self.thread_top.finished.connect(self.hide_loading)
         self.thread_top.started.connect(self.worker_rec_top.run)
         self.worker_rec_top.finished.connect(self.thread_top.quit)
         self.worker_rec_top.finished.connect(self.worker_rec_top.deleteLater)
@@ -251,14 +288,34 @@ class Window(QWidget):
 
         self.thread_top.start()
     def pick_uplay(self, index):
-        from user_files import grab_user_playlist, make_files
-        track_ids = grab_user_playlist(index)
-        make_files(track_ids)
+        self.ind.emit(index)
+        
+        self.thread_u = QThread()
+        self.worker_u = Worker_Recs_Top()
+        self.worker_u.moveToThread(self.thread_u)
+        self.thread_u.started.connect(self.show_loading)
+        self.thread_u.finished.connect(self.hide_loading)
+        self.thread_u.started.connect(self.worker_u.run)
+        self.worker_u.finished.connect(self.thread_u.quit)
+        self.worker_u.finished.connect(self.worker_u.deleteLater)
+        self.thread_u.finished.connect(self.thread_u.deleteLater)
+
+        self.thread_u.start()
+
     def rec_files_q(self):
-        from rec_files import pull_query_songs_playlist, make_files
         query = self.q_box.text()
-        track_ids = pull_query_songs_playlist(query)
-        make_files(track_ids)
+        self.q_sig.emit(query)
+
+        self.thread_q = QThread()
+        self.worker_q = Worker_Recs_Q()
+        self.worker_q.moveToThread(self.thread_q)
+        self.thread_q.started.connect(self.show_loading)
+        self.thread_q.finished.connect(self.hide_loading)
+        self.thread_q.started.connect(self.worker_q.run)
+        self.worker_q.finished.connect(self.thread_q.quit)
+        self.worker_q.finished.connect(self.worker_q.deleteLater)
+        self.thread_q.finished.connect(self.thread_q.deleteLater)
+        self.thread_q.start()
     def play_pause(self):
         if sp.currently_playing() != None:
             if sp.current_playback()['is_playing'] == False:
@@ -277,8 +334,7 @@ class Window(QWidget):
         self.worker_queue.finished.connect(self.thread_queue.quit)
         self.worker_queue.finished.connect(self.worker_queue.deleteLater)
         self.thread_queue.finished.connect(self.thread_queue.deleteLater)
-        self.thread_queue.start()
-        
+        self.thread_queue.start()     
 
 app = QApplication(sys.argv)
 window = Window()
