@@ -27,6 +27,7 @@ def track_id_helper(tracks, id):
 def get_all_playlist_track_uri(playlist_id):
     track_ids = []
     results = sp.playlist_tracks(playlist_id)
+    time.sleep(1)
     tracks = results['items']
     #get ids which are presented as pages if the amount of songs exceeds 100.
     while results['next']:
@@ -71,7 +72,7 @@ def extract_features(track_uris):
         feat=sp.audio_features(i)
         featsl = feat+featsl
         if j%15==0:
-            time.sleep(1)
+            time.sleep(4)
         j+=1
     feats = pd.DataFrame(featsl)
     return feats
@@ -93,9 +94,8 @@ def pull_query_songs_playlist(query):
     top_tracks = []
     j = 0
     for i in range(len(lists)):
-        if j %1 == 0:
+        if j %20 == 0:
             time.sleep(10)
-            continue
         results=get_all_playlist_track_uri(lists[i])
         j+=1
         #if song isnt local then append!!!!!!!!!!
@@ -106,7 +106,7 @@ def pull_query_songs_playlist(query):
     #pulls songs from the top spotify playlists, effectively pulling pop songs.
 def pull_top_songs():
     top_lists=[]
-    for i in sp.category_playlists(category_id='toplists', country = 'US', limit = 25)['playlists']['items']:
+    for i in sp.category_playlists(category_id='toplists', country = 'US', limit = 10)['playlists']['items']:
         top_lists.append(i['id'])
     time.sleep(4)
     top_tracks = []
@@ -135,6 +135,3 @@ def make_files(track_uris):
 
     rec_feat_w_id.to_csv('rec_id.csv', index=False)
     rec_feat.to_csv('rec.csv', index=False)
-
-#genres = grab_genres_uris(rec_id)
-#rec_feat.insert(0,'genre',genres)

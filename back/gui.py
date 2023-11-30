@@ -1,5 +1,5 @@
-from PyQt6.QtWidgets import QApplication, QGridLayout, QTabWidget, QWidget, QLabel, QPushButton, QComboBox, QLineEdit
-from PyQt6.QtGui import QIcon, QPixmap, QMovie
+from PyQt6.QtWidgets import QApplication, QGridLayout, QTabWidget, QWidget, QLabel, QPushButton, QComboBox, QLineEdit, QTableWidget
+from PyQt6.QtGui import QIcon, QPixmap, QMovie, QFont, QFontDatabase
 from PyQt6.QtCore import Qt, QSize, QThread, pyqtSignal, pyqtSlot, QObject, QTimer, QRect
 import sys
 import spotipy
@@ -10,7 +10,6 @@ from spotipy.oauth2 import SpotifyOAuth
 from dotenv import load_dotenv
 
 load_dotenv()
-
 CLIENT_ID = os.getenv('CLIENT_ID')
 CLIENT_SECRET= os.getenv('CLIENT_SECRET')
 REDIRECT_URI = 'http://localhost:8888/callback'
@@ -62,6 +61,20 @@ class Worker_Recs_Q(QObject):
     def get_query(string):
         return string
 
+class Worker_Recent(QObject):
+    finished = pyqtSignal()
+
+    def run(self):
+        from user_files import grab_recent, make_files
+        track_ids = grab_recent()
+        make_files(track_ids)
+        self.finished.emit()
+
+class GraphicButton(QPushButton):
+    pass
+class MovieLabel(QLabel):
+    pass
+
 class Window(QWidget):
     ind = pyqtSignal(int)
     q_sig = pyqtSignal(str)
@@ -71,54 +84,41 @@ class Window(QWidget):
         self.setWindowTitle("Music Recs")
 
         self.layout = QGridLayout()
-        window_layout = QGridLayout()
-        self.setLayout(window_layout)
+        self.setLayout(self.layout)
+        
 
-        tab = QTabWidget()
-        window_layout.addWidget(tab)
-
-        settings_tab = QWidget(tab)
-        settings_layout = QGridLayout()
-
-        button = QPushButton('Wipe blacklist', self)
-        button.clicked.connect(self.delete_black_list)
-        settings_layout.addWidget(button, 0, 0)
-
-        settings_tab.setLayout(settings_layout)
-        tab.addTab(settings_tab, 'Settings')
-
-
-
-        button = QPushButton('Collect last 50 songs', self)
+        button = QPushButton('COLLECT RECENT LISTENING', self)
         button.clicked.connect(self.user_data_recent)
-        button.setToolTip('Collect your most recent 50 songs to base recs off of')
+        button.setToolTip('COLLECT YOUR MOST RECENT 50 SONGS TO BASE RECS OFF OF')
         self.layout.addWidget(button, 0, 0)
         
         uplay_dropdown = QComboBox()
-        uplay_dropdown.setPlaceholderText('Pick a user playlist')
+        uplay_dropdown.setPlaceholderText('PICK A USER PLAYLIST')
         results = sp.current_user_playlists()
         for idx, item in enumerate(results['items']):
             playlist = item['name']
             uplay_dropdown.addItem(playlist)
-        uplay_dropdown.setToolTip('Pick a playlist of yours to base recs off of')
+        uplay_dropdown.setToolTip('PICK A PLAYLIST OF YOURS TO BASE RECS OFF OF')
         uplay_dropdown.activated.connect(self.pick_uplay)
         self.layout.addWidget(uplay_dropdown, 0, 1)
 
-        button = QPushButton('Collect top songs', self)
-        button.setToolTip('Collect top charters to pic recs from')
+        button = QPushButton('COLLECT TOP SONGS', self)
+        button.setToolTip('COLLECT TOP CHARTERS TO PIC RECS FROM')
         button.clicked.connect(self.rec_files_top)
         self.layout.addWidget(button, 0, 2)
 
         self.q_box = QLineEdit(self)
         self.q_box.setFixedWidth(70)
+        self.q_box.setPlaceholderText("METAL")
         self.layout.addWidget(self.q_box, 0, 3)
 
-        button = QPushButton('enter query', self)
+        button = QPushButton('ENTER QUERY', self)
         button.clicked.connect(self.rec_files_q)
+        button.setToolTip('SEARCH FOR KEYWORD TO BASE RECOMMENDATIONS OFF OF')
         self.layout.addWidget(button, 0, 4)
 
 
-        button = QPushButton(self)
+        button = GraphicButton(self)
         button.setGeometry(200,150,100,100)
         button.setStyleSheet("border-radius : 50")
         button.setIcon(QIcon('C:/Users/racra/desktop/capstone stuff/capstone/back/img/play.png'))
@@ -126,7 +126,7 @@ class Window(QWidget):
         button.clicked.connect(self.play_pause)
         self.layout.addWidget(button, 10, 2, alignment = Qt.AlignmentFlag.AlignLeft)
 
-        button = QPushButton(self)
+        button = GraphicButton(self)
         button.setGeometry(200,150,100,100)
         button.setStyleSheet("border-radius : 50")
         button.setIcon(QIcon('C:/Users/racra/desktop/capstone stuff/capstone/back/img/ffw.png'))
@@ -134,7 +134,7 @@ class Window(QWidget):
         button.clicked.connect(self.ffw)
         self.layout.addWidget(button, 10, 3, alignment = Qt.AlignmentFlag.AlignLeft)
 
-        button = QPushButton(self)
+        button = GraphicButton(self)
         button.setGeometry(200,150,100,100)
         button.setStyleSheet("border-radius : 50")
         button.setIcon(QIcon('C:/Users/racra/desktop/capstone stuff/capstone/back/img/rew.png'))
@@ -142,8 +142,9 @@ class Window(QWidget):
         button.clicked.connect(self.rew)
         self.layout.addWidget(button, 10, 1, alignment = Qt.AlignmentFlag.AlignLeft)
 
-        self.queue_button = QPushButton('QUEUE RECS', self)
+        self.queue_button = QPushButton('QUEUE RECOMMENDATIONS', self)
         self.queue_button.clicked.connect(self.queue_recs)
+        self.queue_button.setToolTip('QUEUE SELECTED RECOMMENDATION AFTER PICKING A CATEGORY ABOVE')
         self.layout.addWidget(self.queue_button, 10,0, alignment = Qt.AlignmentFlag.AlignCenter)
 
         self.cover = QLabel()
@@ -161,28 +162,31 @@ class Window(QWidget):
         timer_2.start()
         self.layout.addWidget(self.name_artist, 9, 1, 1, 3, Qt.AlignmentFlag.AlignCenter)
 
+        bbox = QLabel()
+        self.layout.addWidget(bbox, 4, 4, 7, 1)
         self.queue = sp.queue()['queue']
         if sp.currently_playing() != None:
             self.label_1 = QLabel(f'{self.queue[0]['name']} - {self.queue[0]['artists'][0]['name']}')
-            self.layout.addWidget(self.label_1, 4, 4, 1, 1, Qt.AlignmentFlag.AlignRight)
+            self.layout.addWidget(self.label_1, 4, 4, 1, 1, Qt.AlignmentFlag.AlignLeft)
             self.label_2 = QLabel(f'{self.queue[1]['name']} - {self.queue[1]['artists'][0]['name']}')
-            self.layout.addWidget(self.label_2, 5, 4, 1, 1, Qt.AlignmentFlag.AlignRight)
+            self.layout.addWidget(self.label_2, 5, 4, 1, 1, Qt.AlignmentFlag.AlignLeft)
             self.label_3 = QLabel(f'{self.queue[2]['name']} - {self.queue[2]['artists'][0]['name']}')
-            self.layout.addWidget(self.label_3, 6, 4, 1, 1, Qt.AlignmentFlag.AlignRight)
+            self.layout.addWidget(self.label_3, 6, 4, 1, 1, Qt.AlignmentFlag.AlignLeft)
             self.label_4 = QLabel(f'{self.queue[3]['name']} - {self.queue[3]['artists'][0]['name']}')
-            self.layout.addWidget(self.label_4, 7, 4, 1, 1, Qt.AlignmentFlag.AlignRight)
+            self.layout.addWidget(self.label_4, 7, 4, 1, 1, Qt.AlignmentFlag.AlignLeft)
             self.label_5 = QLabel(f'{self.queue[4]['name']} - {self.queue[4]['artists'][0]['name']}')
-            self.layout.addWidget(self.label_5, 8, 4, 1, 1, Qt.AlignmentFlag.AlignRight)
+            self.layout.addWidget(self.label_5, 8, 4, 1, 1, Qt.AlignmentFlag.AlignLeft)
             self.label_6 = QLabel(f'{self.queue[5]['name']} - {self.queue[5]['artists'][0]['name']}')
-            self.layout.addWidget(self.label_6, 9, 4, 1, 1, Qt.AlignmentFlag.AlignRight)
+            self.layout.addWidget(self.label_6, 9, 4, 1, 1, Qt.AlignmentFlag.AlignLeft)
             self.label_7 = QLabel(f'{self.queue[6]['name']} - {self.queue[6]['artists'][0]['name']}')
-            self.layout.addWidget(self.label_7, 10, 4, 1, 1, Qt.AlignmentFlag.AlignRight)
+            self.layout.addWidget(self.label_7, 10, 4, 1, 1, Qt.AlignmentFlag.AlignLeft)
+
         timer_3 = QTimer(self)
         timer_3.setInterval(2000)
         timer_3.timeout.connect(self.show_queue)
         timer_3.start()
 
-        button = QPushButton(self)
+        button = GraphicButton(self)
         button.setGeometry(150,150,100,100)
         button.setStyleSheet("border-radius : 50")
         button.setIcon(QIcon('C:/Users/racra/desktop/capstone stuff/capstone/back/img/dislike.png'))
@@ -190,7 +194,7 @@ class Window(QWidget):
         button.clicked.connect(self.dislike_song)
         self.layout.addWidget(button, 9, 3, alignment = Qt.AlignmentFlag.AlignLeft)
 
-        self.loading = QLabel(self)
+        self.loading = MovieLabel(self)
         self.loading.setGeometry(QRect(0, 0, 200, 200)) 
         self.loading.setMinimumSize(QSize(200, 200)) 
         self.loading.setMaximumSize(QSize(200, 200)) 
@@ -201,10 +205,6 @@ class Window(QWidget):
 
         self.layout.setContentsMargins(50,20,50,20)
         self.layout.setSpacing(10)
-
-        main_tab = QWidget(tab)
-        main_tab.setLayout(self.layout)
-        tab.addTab(main_tab, 'Main')
     
     def show_loading(self):
         self.loading.setHidden(False) 
@@ -224,6 +224,7 @@ class Window(QWidget):
             black_list.add(sp.current_user_playing_track()['item']['id'])
             sp.next_track()
         
+    
 
     def show_queue(self):
         if hasattr(self, 'label_7'):
@@ -271,9 +272,17 @@ class Window(QWidget):
             self.cover.setPixmap(pixmap)
 
     def user_data_recent(self):
-        from user_files import grab_recent, make_files
-        track_ids = grab_recent()
-        make_files(track_ids)
+        self.thread_recent = QThread()
+        self.worker_recent = Worker_Recent()
+        self.worker_recent.moveToThread(self.thread_recent)
+        self.thread_recent.started.connect(self.show_loading)
+        self.thread_recent.finished.connect(self.hide_loading)
+        self.thread_recent.started.connect(self.worker_recent.run)
+        self.worker_recent.finished.connect(self.thread_recent.quit)
+        self.worker_recent.finished.connect(self.worker_recent.deleteLater)
+        self.thread_recent.finished.connect(self.thread_recent.deleteLater)
+
+        self.thread_recent.start()
 
     def rec_files_top(self):
         self.thread_top = QThread()
@@ -330,6 +339,8 @@ class Window(QWidget):
         self.thread_queue = QThread()
         self.worker_queue = Worker_Queue()
         self.worker_queue.moveToThread(self.thread_queue)
+        self.thread_queue.started.connect(self.show_loading)
+        self.thread_queue.finished.connect(self.hide_loading)
         self.thread_queue.started.connect(self.worker_queue.run)
         self.worker_queue.finished.connect(self.thread_queue.quit)
         self.worker_queue.finished.connect(self.worker_queue.deleteLater)
@@ -337,6 +348,13 @@ class Window(QWidget):
         self.thread_queue.start()     
 
 app = QApplication(sys.argv)
+with open('C:\\Users\\racra\\Desktop\\capstone stuff\\Capstone\\back\\stylesheet.qss', 'r') as f:
+    style = f.read()
+    app.setStyleSheet(style)
+
+id = QFontDatabase.addApplicationFont("C:\\Users\\racra\\Desktop\\capstone stuff\\Capstone\\back\\Quicksand.ttf")
+font = QFont("Quicksand")
+app.setFont(font)
 window = Window()
 window.show()
 sys.exit(app.exec())

@@ -1,0 +1,9 @@
+Window {background-color: #2C666E;}
+QLabel {color: white;
+        background-color: #A2AEBB;}
+QPushButton, QComboBox, QLineEdit {color: white;
+             background-color: #A2AEBB;
+             font-weight: 900;}
+GraphicButton {background-color: transparent}
+MovieLabel {background-color: transparent}
+
