@@ -27,7 +27,7 @@ def track_id_helper(tracks, id):
 def get_all_playlist_track_uri(playlist_id):
     track_ids = []
     results = sp.playlist_tracks(playlist_id)
-    time.sleep(1)
+    time.sleep(2)
     tracks = results['items']
     #get ids which are presented as pages if the amount of songs exceeds 100.
     while results['next']:
@@ -71,7 +71,7 @@ def extract_features(track_uris):
     for i in track_uris:
         feat=sp.audio_features(i)
         featsl = feat+featsl
-        if j%15==0:
+        if j%30==0:
             time.sleep(4)
         j+=1
     feats = pd.DataFrame(featsl)
@@ -94,7 +94,7 @@ def pull_query_songs_playlist(query):
     top_tracks = []
     j = 0
     for i in range(len(lists)):
-        if j %20 == 0:
+        if j %30 == 0:
             time.sleep(10)
         results=get_all_playlist_track_uri(lists[i])
         j+=1

@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QApplication, QGridLayout, QTabWidget, QWidget, QLabel, QPushButton, QComboBox, QLineEdit, QTableWidget
+from PyQt6.QtWidgets import QApplication, QGridLayout, QWidget, QLabel, QPushButton, QComboBox, QLineEdit, QDialog
 from PyQt6.QtGui import QIcon, QPixmap, QMovie, QFont, QFontDatabase
 from PyQt6.QtCore import Qt, QSize, QThread, pyqtSignal, pyqtSlot, QObject, QTimer, QRect
 import sys
@@ -18,7 +18,7 @@ SCOPE = ("user-modify-playback-state user-library-modify user-library-read user-
 
 #authorize user
 sp=spotipy.Spotify(auth_manager=SpotifyOAuth(CLIENT_ID, CLIENT_SECRET,
-                                            REDIRECT_URI,scope = SCOPE))
+                                            REDIRECT_URI,scope = SCOPE, requests_session= False))
 
 class Worker_Queue(QObject):
     finished = pyqtSignal()
@@ -81,7 +81,7 @@ class Window(QWidget):
     def __init__(self):
         super().__init__()
         self.resize(1000,600)
-        self.setWindowTitle("Music Recs")
+        self.setWindowTitle("Music Recommendation System")
 
         self.layout = QGridLayout()
         self.setLayout(self.layout)
@@ -112,7 +112,7 @@ class Window(QWidget):
         self.q_box.setPlaceholderText("METAL")
         self.layout.addWidget(self.q_box, 0, 3)
 
-        button = QPushButton('ENTER QUERY', self)
+        button = QPushButton('ENTER SEARCH TERM', self)
         button.clicked.connect(self.rec_files_q)
         button.setToolTip('SEARCH FOR KEYWORD TO BASE RECOMMENDATIONS OFF OF')
         self.layout.addWidget(button, 0, 4)
@@ -192,7 +192,17 @@ class Window(QWidget):
         button.setIcon(QIcon('C:/Users/racra/desktop/capstone stuff/capstone/back/img/dislike.png'))
         button.setIconSize(QSize(75,75))
         button.clicked.connect(self.dislike_song)
+        button.setToolTip('remove song from future recommendations')
         self.layout.addWidget(button, 9, 3, alignment = Qt.AlignmentFlag.AlignLeft)
+
+        button = GraphicButton(self)
+        button.setGeometry(150,150,100,100)
+        button.setStyleSheet("border-radius : 50")
+        button.setIcon(QIcon('C:/Users/racra/desktop/capstone stuff/capstone/back/img/add.png'))
+        button.setIconSize(QSize(75,75))
+        button.clicked.connect(self.add_song)
+        button.setToolTip('add song to your liked songs on Spotify')
+        self.layout.addWidget(button, 9, 1, alignment = Qt.AlignmentFlag.AlignLeft)
 
         self.loading = MovieLabel(self)
         self.loading.setGeometry(QRect(0, 0, 200, 200)) 
@@ -223,9 +233,12 @@ class Window(QWidget):
         if sp.currently_playing() != None:
             black_list.add(sp.current_user_playing_track()['item']['id'])
             sp.next_track()
-        
     
-
+    def add_song(self):
+        song = []
+        song.append(sp.current_user_playing_track()['item']['id'])
+        sp.current_user_saved_tracks_add(song)
+    
     def show_queue(self):
         if hasattr(self, 'label_7'):
             if self.queue != sp.queue()['queue']:
@@ -281,7 +294,6 @@ class Window(QWidget):
         self.worker_recent.finished.connect(self.thread_recent.quit)
         self.worker_recent.finished.connect(self.worker_recent.deleteLater)
         self.thread_recent.finished.connect(self.thread_recent.deleteLater)
-
         self.thread_recent.start()
 
     def rec_files_top(self):
