@@ -9,6 +9,7 @@ from sklearn.preprocessing import MinMaxScaler
 import matplotlib.pyplot as plt
 from dotenv import load_dotenv
 import os
+import black_list
 
 from sklearn.neighbors import KDTree#####
 
@@ -27,7 +28,6 @@ user_feat = pd.read_csv('user.csv')
 user_feat_w_id = pd.read_csv('user_id.csv')
 rec_feat_w_id = pd.read_csv('rec_id.csv')
 rec_feat = pd.read_csv('rec.csv')
-black_list = pd.read_csv('black_list.csv')
 
 feat_names = ['danceability','energy','acousticness',
                'instrumentalness','valence','tempo','liveness','mode','loudness','speechiness']
@@ -95,9 +95,11 @@ recs=recs.iloc[11]
 
 def queue_recs():
     for i in range(int(10)):
-        if recs[i] not in black_list['id'].values:
+        if not black_list.check(recs[i]):
             sp.add_to_queue(recs[i])
 
+
+queue_recs()
 #adds songs to user's queue
 
     

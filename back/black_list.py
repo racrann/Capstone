@@ -15,18 +15,24 @@ SCOPE = ("user-modify-playback-state user-library-modify user-library-read user-
 sp=spotipy.Spotify(auth_manager=SpotifyOAuth(CLIENT_ID, CLIENT_SECRET,
                                             REDIRECT_URI,scope = SCOPE))
 
-black_list = pd.DataFrame(columns = ['id'])
-black_list.to_csv('black_list.csv', index=False)
+
+if not os.path.isfile('black_list.csv'):
+    black_list = pd.DataFrame(columns = ['id'])
+    black_list.to_csv('black_list.csv', index=False)
+else:
+    black_list = pd.read_csv('black_list.csv')
 
 def add(track_id):
     black_list.loc[len(black_list)] = track_id
     make_file()
 
 def check(track_id):
-    if track_id in black_list:
+    if track_id in black_list.values:
         return True
     else:
         return False
     
 def make_file():
     black_list.to_csv('black_list.csv', index=False)
+
+print(check('7F4tV8SiUy6itZTdAzdafO'))

@@ -23,8 +23,8 @@ sp=spotipy.Spotify(auth_manager=SpotifyOAuth(CLIENT_ID, CLIENT_SECRET,
 class Worker_Queue(QObject):
     finished = pyqtSignal()
     def run(self):
-        from black_list import make_file
-        make_file()
+        import black_list
+        black_list.make_file()
         import knn
         knn.queue_recs()
         self.finished.emit()
@@ -221,10 +221,6 @@ class Window(QWidget):
         self.movie.start()
     def hide_loading(self):
         self.loading.setHidden(True)
-
-    def delete_black_list(self):
-        if os.path.exists('C:/users/racra/desktop/capstone stuff/Capstone/black_list.csv'):
-            os.remove('C:/users/racra/desktop/capstone stuff/Capstone/black_list.csv')
 
     def dislike_song(self):
         import black_list
