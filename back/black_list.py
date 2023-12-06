@@ -34,5 +34,3 @@ def check(track_id):
     
 def make_file():
     black_list.to_csv('black_list.csv', index=False)
-
-print(check('7F4tV8SiUy6itZTdAzdafO'))
