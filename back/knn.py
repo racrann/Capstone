@@ -98,8 +98,6 @@ def queue_recs():
         if not black_list.check(recs[i]):
             sp.add_to_queue(recs[i])
 
-
-queue_recs()
 #adds songs to user's queue
 
     
